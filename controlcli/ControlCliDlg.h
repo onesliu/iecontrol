@@ -5,6 +5,7 @@
 #pragma once
 #include "afxwin.h"
 
+#define TIMER1  1
 
 // CCtlPanelDlg dialog
 class CCtlPanelDlg : public CDialogEx
@@ -37,4 +38,6 @@ public:
 	afx_msg void OnBnClickedOk();
 public:
 	CStatic m_info;
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult);
 };

@@ -65,6 +65,9 @@ BEGIN_MESSAGE_MAP(CCtlPanelDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDOK, &CCtlPanelDlg::OnBnClickedOk)
+	ON_WM_TIMER()
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK1, &CCtlPanelDlg::OnNMClickSyslink1)
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK2, &CCtlPanelDlg::OnNMClickSyslink1)
 END_MESSAGE_MAP()
 
 
@@ -182,7 +185,7 @@ int CCtlPanelDlg::findFromShell(void)
 		if (CString(psUrl.GetUrlPath()) != L"/") continue;
 
 		CString csHost(psUrl.GetHostName());
-		if (csHost.Find(L"www.google.com") == -1)
+		if (csHost.Find(L"www.google") == -1)
 			continue;
 
 		hr = spBrowser->get_Document(&spDisp);
@@ -216,24 +219,68 @@ int CCtlPanelDlg::findFromShell(void)
 			
 			if (CString(vType) == L"text") {
 				spText = spInputElement;
-				m_info.SetWindowTextW(vVal.bstrVal);
 			}
 		}
 
 		CComVariant vStr(L"Merry Christmas");
 		hr = spText->put_value(vStr.bstrVal);
 		spForm->submit();
-		//m_info.SetWindowTextW(vQStr);
+		return 0;
 	}
 	
-	UpdateData();
-	return 0;
+	return -1;
 }
-
 
 void CCtlPanelDlg::OnBnClickedOk()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	findFromShell();
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+	ZeroMemory( &si, sizeof(si) );
+	ZeroMemory( &pi, sizeof(pi) );
+	si.cb = sizeof(si);
+	TCHAR  pszCmdLine[] = L"c:\\program files\\internet explorer\\iexplore.exe www.google.com";
+	if( CreateProcess( NULL, pszCmdLine, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi) == 0 ) {
+			m_info.SetWindowTextW(L"Open a browser error!");
+			UpdateData();
+			return;
+	}
+
+	if ( WaitForInputIdle(pi.hProcess, 10000) != 0 ) {
+			m_info.SetWindowTextW(L"Open a browser error!");
+			UpdateData();
+			return;
+	}
+
+	CloseHandle(pi.hThread);
+	CloseHandle(pi.hProcess);
+
+	SetTimer(TIMER1, 200, 0);
 	//CDialogEx::OnOK();
+}
+
+
+void CCtlPanelDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	if ( findFromShell() == 0 ) {
+		m_info.SetWindowTextW(L"All done. Merry Christmas!");
+		KillTimer(TIMER1);
+	}
+	else {
+		m_info.SetWindowTextW(L"Browser is opened, getting google page...");
+	}
+
+	UpdateData();
+
+	CDialogEx::OnTimer(nIDEvent);
+}
+
+
+void CCtlPanelDlg::OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	// TODO: 在此添加控件通知处理程序代码
+	PNMLINK pNMLink = (PNMLINK) pNMHDR;
+	ShellExecuteW(NULL, L"open", pNMLink->item.szUrl, NULL, NULL, SW_SHOWNORMAL);
+	*pResult = 0;
 }
